@@ -2,6 +2,8 @@
 
 use \Hcode\PageAdmin;
 use \Hcode\Model\User;
+use \Hcode\Mailer;
+
 
 $app->get('/admin', function() {
 
