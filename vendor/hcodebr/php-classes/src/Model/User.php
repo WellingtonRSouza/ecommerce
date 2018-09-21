@@ -13,6 +13,7 @@ class User extends Model{
 	const SECRET = "HcodePhp7_Secret";
 	const ERROR = "UserError";
 	const ERROR_REGISTER = "UserErrorRegister";
+	const SUCCESS = "UserSuccess";
 
 	public static function getFromSession()
 	{
@@ -200,7 +201,6 @@ class User extends Model{
      ", array(
          ":email"=>$email
      ));
-
      if (count($results) === 0)
      {
          throw new \Exception("Não foi possível recuperar a senha.");
@@ -212,7 +212,6 @@ class User extends Model{
              ":iduser"=>$data['iduser'],
              ":desip"=>$_SERVER['REMOTE_ADDR']
          ));
-
          if (count($results2) === 0)
          {
              throw new \Exception("Não foi possível recuperar a senha.");
@@ -222,11 +221,11 @@ class User extends Model{
              $dataRecovery = $results2[0];
              $iv = random_bytes(openssl_cipher_iv_length('aes-256-cbc'));
              $code = openssl_encrypt($dataRecovery['idrecovery'], 'aes-256-cbc', User::SECRET, 0, $iv);
-             $results = base64_encode($iv.$code);
+             $result = base64_encode($iv.$code);
              if ($inadmin === true) {
-                 $link = "http://www.hcodecommerce.com.br/admin/forgot/reset?code=$results";
+                 $link = "http://www.hcodecommerce.com.br/admin/forgot/reset?code=$result";
              } else {
-                 $link = "http://www.hcodecommerce.com.br/forgot/reset?code=$results";
+                 $link = "http://www.hcodecommerce.com.br/forgot/reset?code=$result";
              } 
              $mailer = new Mailer($data['desemail'], $data['desperson'], "Redefinir senha da Hcode Store", "forgot", array(
                  "name"=>$data['desperson'],
@@ -237,11 +236,11 @@ class User extends Model{
          }
      }
  }
- public static function validForgotDecrypt($results)
+ public static function validForgotDecrypt($result)
  {
-     $results = base64_decode($results);
-     $code = mb_substr($results, openssl_cipher_iv_length('aes-256-cbc'), null, '8bit');
-     $iv = mb_substr($results, 0, openssl_cipher_iv_length('aes-256-cbc'), '8bit');
+     $result = base64_decode($result);
+     $code = mb_substr($result, openssl_cipher_iv_length('aes-256-cbc'), null, '8bit');
+     $iv = mb_substr($result, 0, openssl_cipher_iv_length('aes-256-cbc'), '8bit');;
      $idrecovery = openssl_decrypt($code, 'aes-256-cbc', User::SECRET, 0, $iv);
      $sql = new Sql();
      $results = $sql->select("
@@ -255,19 +254,18 @@ class User extends Model{
          a.dtrecovery IS NULL
          AND
          DATE_ADD(a.dtregister, INTERVAL 1 HOUR) >= NOW();
-    	 ", array(
+     ", array(
          ":idrecovery"=>$idrecovery
-     	));
-
-     	if (count($results) === 0)
-     	{
-        	 throw new \Exception("Não foi possível recuperar a senha.");
-     	}
-     	else
-     	{
-        	return $results[0];
-    	}
-	}
+     ));
+     if (count($results) === 0)
+     {
+         throw new \Exception("Não foi possível recuperar a senha.");
+     }
+     else
+     {
+         return $results[0];
+     }
+ }
 
 
 	public static function setForgotUsed($idrecovery)
@@ -312,6 +310,28 @@ class User extends Model{
 	{
 
 		$_SESSION[User::ERROR] = NULL;
+	}
+
+	public static function setSuccess($msg)
+	{
+
+		$_SESSION[User::SUCCESS] = $msg;
+	}
+
+	public static function getSuccess()
+	{
+
+		$msg = (isset($_SESSION[User::SUCCESS]) && $_SESSION[User::SUCCESS]) ? $_SESSION[User::SUCCESS] : '';
+
+		User::clearSuccess();
+
+		return $msg;
+	}
+
+	public static function clearSuccess()
+	{
+
+		$_SESSION[User::SUCCESS] = NULL;
 	}
 
 	public static function setErrorRegister($msg)
