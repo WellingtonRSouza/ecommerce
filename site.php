@@ -142,9 +142,6 @@ $app->post("/cart/freight", function(){
 });
 
 
-
-
-
 $app->get("/checkout", function(){
 
 	User::verifyLogin(false);
@@ -152,11 +149,7 @@ $app->get("/checkout", function(){
 	$address = new Address();
 	$cart = Cart::getFromSession();
 
-	if (isset($_GET['zipcode'])) {
-
-		$_GET['zipcode'] = $cart->getdeszipcode();
-
-	}
+	if (!isset($_GET['zipcode']))$_GET['zipcode'] = $cart->getdeszipcode();
 
 	if (isset($_GET['zipcode'])) {
 
@@ -178,6 +171,7 @@ $app->get("/checkout", function(){
 	if (!$address->getdescountry()) $address->setdescountry('');
 	if (!$address->getdeszipcode()) $address->setdeszipcode('');
 
+
 	$page = new Page();
 
 	$page->setTpl("checkout", [
@@ -185,8 +179,6 @@ $app->get("/checkout", function(){
 		'address'=>$address->getValues(),
 		'products'=>$cart->getProducts(),
 		'error'=>Address::getMsgError()
-
-
 	]);
 
 });
@@ -244,7 +236,7 @@ $app->post("/checkout", function(){
 
 	$cart = Cart::getFromSession();
 
-	$totals = $cart->getCalculateTotal();
+	$cart->getCalculateTotal();
 
 	$order = new Order();
 
@@ -511,7 +503,8 @@ $app->get("/boleto/:idorder", function($idorder){
 	$dias_de_prazo_para_pagamento = 10;
 	$taxa_boleto = 5.00;
 	$data_venc = date("d/m/Y", time() + ($dias_de_prazo_para_pagamento * 86400));  // Prazo de X dias OU informe data: "13/04/2006"; 
-	$valor_cobrado = formatPrice($order->getvlTotal()); // Valor - REGRA: Sem pontos na milhar e tanto faz com "." ou "," ou com 1 ou 2 ou sem casa decimal
+	$valor_cobrado = formatPrice($order->getvltotal()); // Valor - REGRA: Sem pontos na milhar e tanto faz com "." ou "," ou com 1 ou 2 ou sem casa decimal
+	$valor_cobrado = str_replace(".", "", $valor_cobrado);
 	$valor_cobrado = str_replace(",", ".",$valor_cobrado);
 	$valor_boleto=number_format($valor_cobrado+$taxa_boleto, 2, ',', '');
 
@@ -568,6 +561,114 @@ $app->get("/boleto/:idorder", function($idorder){
 
 	require_once($path . "funcoes_itau.php");
 	require_once($path . "layout_itau.php");
+
+
+});
+
+$app->get("/profile/orders", function(){
+
+	User::verifyLogin(false);
+
+	$user = User::getFromSession();
+
+	$page = new Page();
+
+	$page->setTpl("profile-orders", [
+		'orders'=>$user->getOrders()
+	]);
+
+
+});
+
+$app->get("/profile/orders/:idorder", function($idorder){
+
+	User::verifyLogin(false);
+
+	$order = new Order();
+
+	$order->get((int)$idorder);
+
+	$cart = new Cart();
+
+	$cart->get((int)$order->getidcart());;
+
+	$cart->getCalculateTotal();
+
+	$page = new Page();
+
+	$page->setTpl("profile-orders-detail", [
+		'order'=>$order->getValues(),
+		'cart'=>$cart->getValues(),
+		'products'=>$cart->getProducts()
+	]);
+});
+
+$app->get("/profile/change-password", function (){
+
+	User::verifyLogin(false);
+
+	$page = new Page();
+
+	$page->setTpl("profile-change-password", [
+		'changePassError'=>User::getError(),
+		'changePassSuccess'=>User::getSuccess()
+
+	]);
+
+
+});
+
+$app->post("/profile/change-password", function(){
+
+	User::verifyLogin(false);
+
+	if (!isset($_POST['current_pass']) || $_POST['current_pass'] === '') {
+
+		User::setError("Digite a senha atual.");
+		header("Location: /profile/change-password");
+		exit;
+	}
+
+	if (!isset($_POST['new_pass']) || $_POST['new_pass'] === '') {
+
+		User::setError("Digite a nova senha.");
+		header("Location: /profile/change-password");
+		exit;
+	}
+
+	if (!isset($_POST['new_pass_confirm']) || $_POST['new_pass_confirm'] === '') {
+
+		User::setError("Confirme a nova senha.");
+		header("Location: /profile/change-password");
+		exit;
+	}
+
+	if ($_POST['current_pass'] === $_POST['new_pass']) {
+
+		User::setError("A sua nova senha deve ser diferente da atual.");
+		header("Location: /profile/change-password");
+		exit;
+
+	}
+
+	$user = User::getFromSession();
+
+	if (!password_verify($_POST['current_pass'], $user->getdespassword())) {
+
+		User::setError("A senha está inválida.");
+		header("Location: /profile/change-password");
+		exit;
+
+	}
+
+	$user->setdespassword($_POST['new_pass']);
+
+	$user->update();
+
+	User::setSuccess("Senha alterada com sucesso.");
+
+	header("Location: /profile/change-password");
+	exit;
 
 
 });

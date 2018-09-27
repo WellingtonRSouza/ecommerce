@@ -43,7 +43,7 @@ class Address extends Model {
 			$this->setdescity($data['localidade']);
 			$this->setdesstate($data['uf']);
 			$this->setdescountry('Brasil');
-			$this->setdeszipcode($nrcep);
+			$this->setnrzipcode($nrcep);
 
 
 		}
