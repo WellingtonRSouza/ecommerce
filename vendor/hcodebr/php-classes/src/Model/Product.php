@@ -219,5 +219,6 @@ class Product extends Model {
 				'pages'=>ceil($resultTotal[0]["nrtotal"] / $itensPerPage)
 			];
 	}
+	
 }
 ?>
