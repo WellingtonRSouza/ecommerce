@@ -6,7 +6,7 @@ use \Hcode\Model\Order;
 use \Hcode\Model\OrderStatus;
 
 
-$app->get("/admin/orders/:idorder/status", function ($idorder){
+$app->get("/admin/orders/:idorder/status", function($idorder){
 
 	User::verifyLogin();
 
@@ -44,6 +44,7 @@ $app->post("/admin/orders/:idorder/status", function($idorder){
 	$order->save();
 
 	Order::setSuccess("Status atualizado.");
+	
 	header("Location: /admin/orders/".$idorder."/status");
 	exit;
 
